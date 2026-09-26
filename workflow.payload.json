@@ -10,7 +10,7 @@
         "172": {
             "class_type": "INTConstant",
             "inputs": {
-                "value": 5
+                "value": "{{DURATION_SECONDS}}"
             }
         },
         "174": {
@@ -22,7 +22,7 @@
         "189": {
             "class_type": "PrimitiveStringMultiline",
             "inputs": {
-                "value": "女孩跳舞"
+                "value": "{{VIDEO_DESCRIPTION}}"
             }
         },
         "209": {

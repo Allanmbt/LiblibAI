@@ -13,6 +13,20 @@ const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const MAX_JSON_BYTES = 128 * 1024;
 const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
+const WORKFLOWS = Object.freeze({
+  legacy: {
+    id: 'legacy',
+    name: '动作迁移 v1.1（原 API）',
+    pathEnv: 'WORKFLOW_PAYLOAD_PATH',
+    defaultPath: 'workflow.payload.json',
+  },
+  'wan-animate-v5': {
+    id: 'wan-animate-v5',
+    name: 'WanAnimate v5（新 API）',
+    pathEnv: 'NEW_WORKFLOW_PAYLOAD_PATH',
+    defaultPath: 'workflow.new.payload.json',
+  },
+});
 
 function loadEnv(filePath = path.join(ROOT, '.env')) {
   if (!fs.existsSync(filePath)) return;
@@ -42,12 +56,19 @@ function getClient() {
   });
 }
 
-function workflowPath() {
-  return path.resolve(ROOT, process.env.WORKFLOW_PAYLOAD_PATH || 'workflow.payload.json');
+function getWorkflow(workflowId = 'legacy') {
+  const workflow = WORKFLOWS[workflowId];
+  if (!workflow) throw new Error('所选工作流不存在');
+  return workflow;
 }
 
-function readWorkflowPayload() {
-  const filePath = workflowPath();
+function workflowPath(workflowId = 'legacy') {
+  const workflow = getWorkflow(workflowId);
+  return path.resolve(ROOT, process.env[workflow.pathEnv] || workflow.defaultPath);
+}
+
+function readWorkflowPayload(workflowId = 'legacy') {
+  const filePath = workflowPath(workflowId);
   if (!fs.existsSync(filePath)) {
     throw new Error(`找不到工作流配置：${path.basename(filePath)}`);
   }
@@ -167,20 +188,49 @@ function configState() {
   const hasCredentials = Boolean(
     process.env.LIBLIB_ACCESS_KEY && process.env.LIBLIB_SECRET_KEY,
   );
-  let hasWorkflow = false;
-  let workflowError = '';
-  try {
-    readWorkflowPayload();
-    hasWorkflow = true;
-  } catch (error) {
-    workflowError = error.message;
-  }
+  const workflows = Object.values(WORKFLOWS).map((workflow) => {
+    try {
+      readWorkflowPayload(workflow.id);
+      return { id: workflow.id, name: workflow.name, ready: true, error: '' };
+    } catch (error) {
+      return { id: workflow.id, name: workflow.name, ready: false, error: error.message };
+    }
+  });
+  const hasWorkflow = workflows.every((workflow) => workflow.ready);
+  const workflowError = workflows
+    .filter((workflow) => !workflow.ready)
+    .map((workflow) => `${workflow.name}：${workflow.error}`)
+    .join('；');
   return {
     ready: hasCredentials && hasWorkflow,
     hasCredentials,
     hasWorkflow,
     workflowError,
+    workflows,
   };
+}
+
+function validateTaskOptions(body) {
+  const durationSeconds = Number(body.durationSeconds);
+  if (!Number.isInteger(durationSeconds) || durationSeconds < 1 || durationSeconds > 60) {
+    throw new Error('视频时长必须是 1 到 60 之间的整数秒');
+  }
+  if (typeof body.description !== 'string') {
+    throw new Error('请填写视频描述');
+  }
+  const description = body.description.trim();
+  if (description.length > 1000) throw new Error('视频描述不能超过 1000 个字符');
+  return { durationSeconds, description };
+}
+
+function buildWorkflowPayload(workflowId, values) {
+  const template = readWorkflowPayload(workflowId);
+  return replacePlaceholders(template, {
+    '{{CHARACTER_URL}}': values.characterUrl,
+    '{{ACTION_VIDEO_URL}}': values.actionVideoUrl,
+    '{{DURATION_SECONDS}}': values.durationSeconds,
+    '{{VIDEO_DESCRIPTION}}': values.description,
+  });
 }
 
 async function handleApi(req, res, pathname, searchParams) {
@@ -209,10 +259,13 @@ async function handleApi(req, res, pathname, searchParams) {
     }
     const characterUrl = validateHttpsUrl(body.characterUrl, '角色图片');
     const actionVideoUrl = validateHttpsUrl(body.actionVideoUrl, '动作视频');
-    const template = readWorkflowPayload();
-    const payload = replacePlaceholders(template, {
-      '{{CHARACTER_URL}}': characterUrl,
-      '{{ACTION_VIDEO_URL}}': actionVideoUrl,
+    const workflowId = body.workflowId || 'legacy';
+    const { durationSeconds, description } = validateTaskOptions(body);
+    const payload = buildWorkflowPayload(workflowId, {
+      characterUrl,
+      actionVideoUrl,
+      durationSeconds,
+      description,
     });
     const result = await getClient().submitWorkflow(payload);
     if (!result?.generateUuid) throw new Error('LiblibAI 未返回任务 UUID');
@@ -305,4 +358,10 @@ if (require.main === module) {
   });
 }
 
-module.exports = { createServer, readWorkflowPayload };
+module.exports = {
+  WORKFLOWS,
+  buildWorkflowPayload,
+  createServer,
+  readWorkflowPayload,
+  validateTaskOptions,
+};

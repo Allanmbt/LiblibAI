@@ -1,0 +1,48 @@
+{
+    "templateUuid": "4df2efa0f18d46dc9758803e478eb51c",
+    "generateParams": {
+        "112": {
+            "class_type": "Primitive integer [Crystools]",
+            "inputs": {
+                "int": 30
+            }
+        },
+        "117": {
+            "class_type": "Primitive integer [Crystools]",
+            "inputs": {
+                "int": "{{DURATION_SECONDS}}"
+            }
+        },
+        "121": {
+            "class_type": "Primitive integer [Crystools]",
+            "inputs": {
+                "int": 480
+            }
+        },
+        "122": {
+            "class_type": "Primitive integer [Crystools]",
+            "inputs": {
+                "int": 854
+            }
+        },
+        "131": {
+            "class_type": "LoadImage",
+            "inputs": {
+                "image": "{{CHARACTER_URL}}"
+            }
+        },
+        "154": {
+            "class_type": "VHS_LoadVideo",
+            "inputs": {
+                "video": "{{ACTION_VIDEO_URL}}"
+            }
+        },
+        "194": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": "{{VIDEO_DESCRIPTION}}"
+            }
+        },
+        "workflowUuid": "1e71315052dc4add86936815b662229c"
+    }
+}

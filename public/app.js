@@ -3,6 +3,9 @@ const elements = {
   apiLabel: document.querySelector('#apiStatus .status-label'),
   characterInput: document.querySelector('#characterInput'),
   actionInput: document.querySelector('#actionInput'),
+  workflowSelect: document.querySelector('#workflowSelect'),
+  durationInput: document.querySelector('#durationInput'),
+  descriptionInput: document.querySelector('#descriptionInput'),
   rightsCheck: document.querySelector('#rightsCheck'),
   generateButton: document.querySelector('#generateButton'),
   progressSection: document.querySelector('#progressSection'),
@@ -20,6 +23,7 @@ const elements = {
 
 const state = {
   configured: false,
+  workflowReadiness: {},
   character: null,
   action: null,
   busy: false,
@@ -59,15 +63,20 @@ function showToast(message) {
 async function checkConfig() {
   try {
     const config = await api('/api/config');
-    state.configured = config.ready;
+    state.workflowReadiness = Object.fromEntries(
+      (config.workflows || []).map((workflow) => [workflow.id, workflow]),
+    );
+    state.configured = Boolean(
+      config.hasCredentials && state.workflowReadiness[elements.workflowSelect.value]?.ready,
+    );
     elements.apiStatus.classList.toggle('ready', config.ready);
     elements.apiStatus.classList.toggle('error', !config.ready);
-    elements.apiLabel.textContent = config.ready ? 'API 已连接' : '需要配置';
+    elements.apiLabel.textContent = config.ready ? '2 个 API 已连接' : '需要配置';
     elements.apiStatus.title = config.ready
-      ? 'LiblibAI 密钥与动作工作流已配置'
+      ? 'LiblibAI 密钥与两个视频工作流已配置'
       : [
           config.hasCredentials ? '' : '缺少 .env API 密钥',
-          config.hasWorkflow ? '' : config.workflowError,
+          config.workflowError,
         ].filter(Boolean).join('；');
     updateButton();
   } catch (error) {
@@ -111,10 +120,19 @@ function formatBytes(bytes) {
 }
 
 function updateButton() {
+  const duration = Number(elements.durationInput.value);
+  const hasValidOptions = Number.isInteger(duration) && duration >= 1 && duration <= 60;
   elements.generateButton.disabled = !(
     state.configured && state.character && state.action &&
-    elements.rightsCheck.checked && !state.busy
+    elements.rightsCheck.checked && hasValidOptions && !state.busy
   );
+}
+
+function selectWorkflow() {
+  const selected = state.workflowReadiness[elements.workflowSelect.value];
+  state.configured = Boolean(selected?.ready);
+  if (selected && !selected.ready) showToast(selected.error || '工作流配置不可用');
+  updateButton();
 }
 
 function bindDropzone(kind, input) {
@@ -197,7 +215,15 @@ async function pollTask(generateUuid) {
 
 async function generate() {
   if (state.busy) return;
+  const taskOptions = {
+    workflowId: elements.workflowSelect.value,
+    durationSeconds: Number(elements.durationInput.value),
+    description: elements.descriptionInput.value,
+  };
   state.busy = true;
+  elements.workflowSelect.disabled = true;
+  elements.durationInput.disabled = true;
+  elements.descriptionInput.disabled = true;
   updateButton();
   elements.resultSection.hidden = true;
   elements.generateButton.querySelector('span').textContent = '生成中…';
@@ -209,8 +235,11 @@ async function generate() {
     const task = await api('/api/tasks', {
       method: 'POST',
       body: JSON.stringify({
+        workflowId: taskOptions.workflowId,
         characterUrl,
         actionVideoUrl,
+        durationSeconds: taskOptions.durationSeconds,
+        description: taskOptions.description,
         confirmedRights: elements.rightsCheck.checked,
       }),
     });
@@ -234,6 +263,9 @@ async function generate() {
     elements.progressTitle.textContent = '任务未完成';
   } finally {
     state.busy = false;
+    elements.workflowSelect.disabled = false;
+    elements.durationInput.disabled = false;
+    elements.descriptionInput.disabled = false;
     elements.generateButton.querySelector('span').textContent = '开始生成';
     updateButton();
   }
@@ -250,6 +282,8 @@ function resetTask() {
 bindDropzone('character', elements.characterInput);
 bindDropzone('action', elements.actionInput);
 elements.rightsCheck.addEventListener('change', updateButton);
+elements.workflowSelect.addEventListener('change', selectWorkflow);
+elements.durationInput.addEventListener('input', updateButton);
 elements.generateButton.addEventListener('click', generate);
 elements.newTaskButton.addEventListener('click', resetTask);
 checkConfig();

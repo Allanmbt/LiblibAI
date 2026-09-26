@@ -31,6 +31,30 @@
       </section>
 
       <section class="studio" aria-label="动作迁移生成器">
+        <div class="workflow-controls">
+          <label class="control-field workflow-field">
+            <span>生成工作流</span>
+            <select id="workflowSelect" aria-describedby="workflowHint">
+              <option value="legacy">动作迁移 v1.1（原 API）</option>
+              <option value="wan-animate-v5">WanAnimate v5（新 API）</option>
+            </select>
+            <small id="workflowHint">切换 API 不会清空已选素材和下方参数</small>
+          </label>
+          <label class="control-field duration-field">
+            <span>视频时长</span>
+            <div class="number-input">
+              <input id="durationInput" type="number" min="1" max="60" step="1" value="9" inputmode="numeric" />
+              <span>秒</span>
+            </div>
+            <small>1–60 秒，两个 API 共用</small>
+          </label>
+          <label class="control-field description-field">
+            <span>视频描述</span>
+            <textarea id="descriptionInput" maxlength="1000" rows="3" placeholder="例如：一个女孩在舞台上跳舞">女孩跳舞</textarea>
+            <small>用简洁文字描述人物动作和画面</small>
+          </label>
+        </div>
+
         <div class="input-grid">
           <article class="upload-panel" data-kind="character">
             <div class="panel-head">

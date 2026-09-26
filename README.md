@@ -1,6 +1,6 @@
 # Motion Transfer Studio
 
-一个简洁的 LiblibAI 动作模仿前端：上传角色图片和参考动作视频，调用 LiblibAI 工作流 API，轮询并展示生成视频。
+一个简洁的 LiblibAI 动作模仿前端：上传角色图片和参考动作视频，在两套 LiblibAI 工作流间切换，并共用视频时长、视频描述和上传素材。
 
 ## 工作方式
 
@@ -22,13 +22,18 @@ LIBLIB_SECRET_KEY=你的_SecretKey
 PORT=3000
 ```
 
-2. 在 LiblibAI 中打开要使用的动作模仿工作流，开通 API 服务并复制页面给出的完整“参数示例”。
+2. 项目内置两个工作流配置：
 
-3. 用该 JSON 覆盖 `workflow.payload.json`，保留真实的 `templateUuid`、`workflowUuid`、节点 ID、`class_type` 和其他参数，只把两个素材 URL 改为：
+   - `workflow.payload.json`：动作迁移 v1.1（原 API）
+   - `workflow.new.payload.json`：WanAnimate v5（新 API）
+
+3. 替换其中任何工作流时，保留真实的 `templateUuid`、`workflowUuid`、节点 ID、`class_type` 和其他参数，并在对应节点使用四个占位符：
 
 ```json
 "{{CHARACTER_URL}}"
 "{{ACTION_VIDEO_URL}}"
+"{{DURATION_SECONDS}}"
+"{{VIDEO_DESCRIPTION}}"
 ```
 
 示意：
@@ -45,12 +50,20 @@ PORT=3000
     "动作视频节点 ID": {
       "class_type": "工作流参数示例中的原值",
       "inputs": { "工作流中的视频字段": "{{ACTION_VIDEO_URL}}" }
+    },
+    "时长节点 ID": {
+      "class_type": "工作流参数示例中的原值",
+      "inputs": { "时长字段": "{{DURATION_SECONDS}}" }
+    },
+    "描述节点 ID": {
+      "class_type": "工作流参数示例中的原值",
+      "inputs": { "描述字段": "{{VIDEO_DESCRIPTION}}" }
     }
   }
 }
 ```
 
-不要猜节点 ID 或 `class_type`；不同动作模仿工作流的参数不同，必须以该工作流 API 页面生成的 JSON 为准。`workflow.payload.json` 本身通常不含密钥，可以保存在服务器，但仍建议按你的工作流许可要求管理。
+不要猜节点 ID 或 `class_type`；不同动作模仿工作流的参数不同，必须以该工作流 API 页面生成的 JSON 为准。两个 payload 文件本身通常不含密钥，可以保存在服务器，但仍建议按你的工作流许可要求管理。
 
 ## 运行
 
