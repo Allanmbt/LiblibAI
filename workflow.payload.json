@@ -1,0 +1,42 @@
+{
+    "templateUuid": "4df2efa0f18d46dc9758803e478eb51c",
+    "generateParams": {
+        "170": {
+            "class_type": "FloatConstant",
+            "inputs": {
+                "value": 16
+            }
+        },
+        "172": {
+            "class_type": "INTConstant",
+            "inputs": {
+                "value": 5
+            }
+        },
+        "174": {
+            "class_type": "INTConstant",
+            "inputs": {
+                "value": 1280
+            }
+        },
+        "189": {
+            "class_type": "PrimitiveStringMultiline",
+            "inputs": {
+                "value": "女孩跳舞"
+            }
+        },
+        "209": {
+            "class_type": "VHS_LoadVideo",
+            "inputs": {
+                "video": "{{ACTION_VIDEO_URL}}"
+            }
+        },
+        "210": {
+            "class_type": "LoadImage",
+            "inputs": {
+                "image": "{{CHARACTER_URL}}"
+            }
+        },
+        "workflowUuid": "c671cd77874a4a25adbcdee375481ae6"
+    }
+}

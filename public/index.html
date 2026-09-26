@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="使用 LiblibAI API 将参考视频动作迁移到指定角色。" />
+    <title>Motion Transfer Studio</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Motion Transfer Studio 首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none"><path d="M8 23.5V8.8l8 4.7 8-4.7v14.7L16 28l-8-4.5Z" stroke="currentColor" stroke-width="2"/><path d="m8 8.8 8-4.6 8 4.6M16 13.5V28" stroke="currentColor" stroke-width="2"/></svg>
+        </span>
+        <span>Motion Transfer</span>
+      </a>
+      <div id="apiStatus" class="api-status" title="检查服务配置">
+        <span class="status-dot"></span>
+        <span class="status-label">检查 API</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow"><span></span> LIBLIBAI MOTION WORKFLOW</div>
+        <h1>换一个角色，<br /><em>保留每一个动作。</em></h1>
+        <p>上传角色参考图与动作视频，让 LiblibAI 工作流生成角色替换视频。</p>
+      </section>
+
+      <section class="studio" aria-label="动作迁移生成器">
+        <div class="input-grid">
+          <article class="upload-panel" data-kind="character">
+            <div class="panel-head">
+              <div>
+                <span class="step-number">01</span>
+                <h2>角色图片</h2>
+              </div>
+              <span class="file-state">尚未选择</span>
+            </div>
+            <label class="dropzone" for="characterInput">
+              <input id="characterInput" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+              <div class="empty-preview">
+                <span class="upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <strong>拖入或选择角色图片</strong>
+                <small>清晰正面、完整主体效果更稳定</small>
+              </div>
+              <img class="media-preview" alt="角色图片预览" />
+              <button class="replace-file" type="button">重新选择</button>
+            </label>
+          </article>
+
+          <div class="transfer-mark" aria-hidden="true">
+            <span></span><i>+</i><span></span>
+          </div>
+
+          <article class="upload-panel" data-kind="action">
+            <div class="panel-head">
+              <div>
+                <span class="step-number">02</span>
+                <h2>动作视频</h2>
+              </div>
+              <span class="file-state">尚未选择</span>
+            </div>
+            <label class="dropzone" for="actionInput">
+              <input id="actionInput" type="file" accept="video/mp4,video/quicktime,video/webm" hidden />
+              <div class="empty-preview">
+                <span class="upload-icon play-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="m9 7 8 5-8 5V7Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/></svg>
+                </span>
+                <strong>拖入或选择动作视频</strong>
+                <small>建议单人、全身可见、镜头稳定</small>
+              </div>
+              <video class="media-preview" muted playsinline></video>
+              <button class="replace-file" type="button">重新选择</button>
+            </label>
+          </article>
+        </div>
+
+        <div class="submit-row">
+          <label class="rights-check">
+            <input id="rightsCheck" type="checkbox" />
+            <span aria-hidden="true"></span>
+            我确认拥有上传素材的使用权及人物授权
+          </label>
+          <button id="generateButton" class="generate-button" type="button" disabled>
+            <span>开始生成</span>
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <section id="progressSection" class="progress-section" hidden aria-live="polite">
+        <div class="progress-copy">
+          <div>
+            <span class="live-dot"></span>
+            <strong id="progressTitle">正在准备素材</strong>
+          </div>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-track"><span id="progressBar"></span></div>
+        <ol class="progress-steps">
+          <li data-stage="upload">上传素材</li>
+          <li data-stage="submit">提交任务</li>
+          <li data-stage="generate">生成视频</li>
+          <li data-stage="audit">内容审核</li>
+        </ol>
+        <p id="progressMessage">文件仅上传至 LiblibAI 存储服务。</p>
+      </section>
+
+      <section id="resultSection" class="result-section" hidden>
+        <div class="result-head">
+          <div>
+            <span class="step-number">03</span>
+            <h2>生成完成</h2>
+          </div>
+          <div id="costSummary" class="cost-summary"></div>
+        </div>
+        <div class="result-frame">
+          <video id="resultVideo" controls playsinline></video>
+          <div class="result-actions">
+            <a id="openResult" class="secondary-button" target="_blank" rel="noreferrer">打开原视频</a>
+            <button id="newTaskButton" class="secondary-button" type="button">生成新视频</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Powered by LiblibAI API</span>
+      <span>生成内容请遵守平台规则并尊重肖像权</span>
+    </footer>
+
+    <div id="toast" class="toast" role="alert" hidden></div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
